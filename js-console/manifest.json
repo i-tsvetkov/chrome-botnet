@@ -1,0 +1,11 @@
+{
+  "manifest_version": 2,
+  "name": "botnet",
+  "version": "0.1",
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["botnet.js"]
+    }
+  ]
+}
