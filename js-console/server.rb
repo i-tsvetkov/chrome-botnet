@@ -2,6 +2,7 @@ require 'webrick'
 require 'webrick/https'
 require 'openssl'
 require 'uri'
+require 'set'
 
 cert = OpenSSL::X509::Certificate.new File.read 'cert.pem'
 pkey = OpenSSL::PKey::RSA.new File.read 'pkey.pem'
@@ -16,30 +17,42 @@ server = WEBrick::HTTPServer.new(:Port => 8000,
 trap 'INT' do server.shutdown end
 
 $jscode = ''
-$result_shown = true
+$ids_in  = Set.new []
+$ids_out = Set.new []
+$results = []
 
 def read_cmd
-  return sleep 0.1 unless $result_shown
+  return sleep 0.1 unless $ids_in == $ids_out
+  puts $results
   print ' js > '
   $jscode = readline
-  $result_shown = false
+  $ids_in  = Set.new []
+  $ids_out = Set.new []
+  $results = []
+  sleep 0.1 while $ids_in.empty?
 end
 
 server.mount_proc '/js' do |req, res|
+  id = req.query['id']
   res.status = 200
   res['Content-Type'] = 'application/javascript'
   res['Pragma'] = res['Cache-Control'] = 'no-cache'
-  res.body = $jscode
+  res.body = $ids_in.member?(id) ? '' : $jscode
+  $ids_in.add id unless $jscode.empty?
 end
 
 server.mount_proc '/result' do |req, res|
-  $jscode = ''
-  puts "->\s#{URI.unescape(req.query['r'])}"
-  $result_shown = true
+  id = req.query['id']
+  $results.push "#{id}\s->\s#{URI.unescape(req.query['r'])}"
   res.status = 200
   res['Content-Type'] = 'application/javascript'
   res['Pragma'] = res['Cache-Control'] = 'no-cache'
   res.body = ''
+  16.times do
+    break if $ids_in != $ids_out + [id]
+    sleep 0.1
+  end
+  $ids_out.add id
 end
 
 Thread.new { server.start }
