@@ -20,15 +20,22 @@ $jscode = ''
 $ids_in  = Set.new []
 $ids_out = Set.new []
 $results = []
+$ctr = 100
+
+def wait
+  sleep 0.1
+  $ctr -= 1
+end
 
 def read_cmd
-  return sleep 0.1 unless $ids_in == $ids_out
+  return wait unless $ids_in == $ids_out or $ctr.zero?
   puts $results
   print ' js > '
   $jscode = readline
   $ids_in  = Set.new []
   $ids_out = Set.new []
   $results = []
+  $ctr = 100
   sleep 0.1 while $ids_in.empty?
 end
 
